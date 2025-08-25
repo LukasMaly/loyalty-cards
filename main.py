@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import json
 
-from barcode import Code128, EAN13
+import barcode
 from barcode.writer import ImageWriter
 import qrcode
 
@@ -9,9 +9,9 @@ import qrcode
 @dataclass
 class Card:
     name: str
-    content: str
-    format: str
-    mask_pattern: int = 0  # Only used for QR codes
+    type: str
+    data: str
+    mask: int = 0  # Only used for QR codes
 
 
 def load_cards(path: str) -> list[Card]:
@@ -23,13 +23,11 @@ def load_cards(path: str) -> list[Card]:
 def main():
     cards = load_cards("cards.json")
     for card in cards:
-        if card.format == "EAN_13":
-            EAN13(card.content, writer=ImageWriter()).save("output/" + card.name)
-        elif card.format == "CODE_128":
-            Code128(card.content, writer=ImageWriter()).save("output/" + card.name)
-        elif card.format == "QR":
-            img = qrcode.make(card.content, error_correction=qrcode.constants.ERROR_CORRECT_L, mask_pattern=card.mask_pattern)
-            img.save("output/" + card.name + ".png")
+        if card.type == "qrcode":
+            img = qrcode.make(card.data, version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, mask_pattern=card.mask)
+        else:
+            img = barcode.get(card.type, card.data, writer=ImageWriter()).render(writer_options={'write_text': False})
+        img.save("output/" + card.name + ".png")
 
 
 if __name__ == "__main__":
